@@ -1,0 +1,1110 @@
+composer global require laravel/installer
+laravel new wantowan
+
+php artisan serve
+
+----
+.env
+----
+DB_DATABASE= wantowan
+
+sa mysql admin, gawa db na crudnew
+
+open xampp, start Apache and MySQL then tap admin ng MySQL, wait magload sa browser
+
+php artisan make:migration create_students_table
+php artisan make:migration create_academic_table
+php artisan make:migration create_country_table
+
+php artisan make:model Student 
+php artisan make:model Academic
+php artisan make:model Country
+
+
+php artisan make:controller StudentController 
+
+
+lagay muna mga details sa table saka ka
+
+php artisan migrate
+
+- - - - - - - - - - 
+StudentController.php
+- - - - - -- - - - -
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Student;
+use Illuminate\Http\Request;
+
+class StudentController extends Controller
+{
+    public function index()
+    {
+        $students = Student::all();
+        return view('students.index', ['students' => $students]);
+    }
+
+    public function create()
+    {
+        return view('students.create');
+    }
+    
+    public function store(Request $request)
+    {
+        $students = Student::create([
+            'name' => $request->name,
+            'age' => $request->age,
+            'address' => $request->address,
+        ]);
+
+        $students->academic()->create([
+            'course' => $request->course,
+            'year' => $request->year,
+        ]);
+
+        $students->country()->create([
+            'continent' => $request->continent,
+            'country_name' => $request->country_name,
+            'capital' => $request->capital,
+        ]);
+        
+        return redirect(route('students.index'))->with('message','Student Data created successfully.');
+    }
+    
+    
+    public function show(Student $students)
+    {
+        return view('students.show', ['students' => $students]);
+    }
+
+    
+    public function edit(Student $students)
+    {
+        return view('students.edit', ['students' => $students]);
+    }
+    
+    public function update(Student $students, Request $request)
+    {
+        $students->update([
+            'name' => $request->name,
+            'age' => $request->age,
+            'address' => $request->address,
+        ]);
+
+        $students->academic()->update([
+            'course' => $request->course,
+            'year' => $request->year,
+        ]);
+
+        $students->country()->update([
+            'continent' => $request->continent,
+            'country_name' => $request->country_name,
+            'capital' => $request->capital,
+        ]);
+       
+        return redirect(route('students.index'))->with('message','Student Data updated successfully.');
+    }
+    
+    public function addEditAcademic($student_id)
+    {
+        $students = Student::findOrFail($student_id)->academic;
+        return view('students.addeditacademic', compact('students', 'student_id'));
+    }
+
+    public function storeOrUpdateAcademic(Request $request, $student_id)
+    {
+        $students = Student::findOrFail($student_id);
+        $students->academic()->updateOrCreate(
+            [
+                'student_id' => $student_id,
+            ],
+            [
+                'course' => $request->course,
+                'year' => $request->year,
+            ]
+        );
+        return redirect('students')->with('message','Saved Successfully');
+    }
+     
+    public function addEditCountry($student_id)
+    {
+        $students = Student::findOrFail($student_id)->country;
+        return view('students.addeditcountry', compact('students', 'student_id'));
+    }
+
+    public function storeOrUpdateCountry(Request $request, $student_id)
+    {
+        $students = Student::findOrFail($student_id);
+        $students->country()->updateOrCreate(
+            [
+                'student_id' => $student_id,
+            ],
+            [
+                'continent' => $request->continent,
+                'country_name' => $request->country_name,
+                'capital' => $request->capital,
+            ]       
+        );
+        return redirect('students')->with('message','Saved Successfully');
+    }
+
+    public function destroy(Student $students)
+    {
+        $students->delete();
+        return redirect(route('students.index'))->with('message','Student data deleted successfully');
+    }
+
+    public function deleteAcademic($student_id, Request $request)
+    {
+        $students = Student::findOrFail($student_id);
+        $students->academic()->delete(
+            [
+                'student_id' => $student_id,
+            ],
+            [
+                'course' => $request->course,
+                'year' => $request->year,
+            ]
+        );
+            return redirect(route('students.index'))->with('message','Data deleted successfully');
+    }
+
+    public function deleteCountry($student_id, Request $request)
+    {
+        $students = Student::findOrFail($student_id);
+        $students->country()->delete(
+            [
+                'student_id' => $student_id,
+            ],
+            [
+                'name' => $request->name,
+                'age' => $request->age,
+                'address' => $request->address,
+            ]);
+
+                return redirect(route('students.index'))->with('message','Data deleted successfully');     
+    }
+
+    public function addEditStudentData($student_id)
+    {
+        $students = Student::findOrFail($student_id)->country;
+        return view('students.addeditstudentdata', compact('students', 'student_id'));
+    }
+
+    public function storeOrUpdateStudenData(Request $request, $student_id)
+    {
+        $students = Student::findOrFail($student_id);
+        $students->studentdata()->updateOrCreate(
+            [
+                'student_id' => $student_id,
+            ],
+            [
+                'continent' => $request->continent,
+                'country_name' => $request->country_name,
+                'capital' => $request->capital,
+            ]       
+        );
+        return redirect('students')->with('message','Saved Successfully');
+    }
+
+    public function deleteStudentData($student_id, Request $request)
+    {
+        $students = Student::findOrFail($student_id);
+        $students->country()->delete(
+            [
+                'student_id' => $student_id,
+            ],
+            [
+                'continent' => $request->continent,
+                'country_name' => $request->country_name,
+                'capital' => $request->capital,
+            ]);
+
+                return redirect(route('students.index'))->with('message','Data deleted successfully');     
+    }
+
+
+}
+
+- - - - - - -
+Academic.php
+- - - - - - -
+
+<?php
+
+namespace App\Models;
+
+use App\Models\Student;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Academic extends Model
+{
+    use HasFactory;
+
+    protected $table = 'academic';
+
+    protected $fillable = [
+        'student_id',
+        'course',
+        'year',
+    ];
+
+    public function student()
+    {
+        return $this->belongTo(Student::class, 'student_id', 'id', 'course', 'year');
+    }
+}
+
+- - - - - - -
+Country.php
+- - - - - - -
+ 
+<?php
+
+namespace App\Models;
+
+use App\Models\Student;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Country extends Model
+{
+    use HasFactory;
+
+    protected $table = 'country';
+
+    protected $fillable = [
+        'student_id',
+        'continent',
+        'country_name',
+        'capital',
+    ];
+
+    public function student()
+    {
+        return $this->belongTo(Student::class, 'student_id', 'id', 'continent', 'country_name', 'capital');
+    }
+}
+
+- - - - - 
+Student.php
+- - - - - - 
+
+<?php
+
+namespace App\Models;
+
+use App\Models\Academic;
+use App\Models\Country;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Student extends Model
+{
+    use HasFactory;
+
+    protected $table = 'students';
+
+    protected $fillable = [
+        'student_id',
+        'name',
+        'age',
+        'address',
+    ];
+    
+    public function academic() 
+    {
+        return $this->hasOne(Academic::class, 'student_id','id','course','year');
+    }
+
+    public function country() 
+    {
+        return $this->hasOne(Country::class, 'student_id','id', 'continent', 'country_name', 'capital');
+    }
+
+}
+
+
+- - - - - - - - - - - - - 
+create_students_table.php
+- - - - - - - - - - - - -
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('students', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->integer('age');
+            $table->string('address');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('students');
+    }
+};
+
+- - - - - - - - - - - - -
+create_academic_table.php
+- - - - - - - - - - - - - 
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('academic', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('student_id')->unique();
+            $table->string('course');
+            $table->string('year');
+            $table->foreign('student_id')->references('id')->on('students')->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('academic');
+    }
+};
+
+- - - - - - - - - - - - -
+create_country_table.php
+- - - - - - - - - - - - - 
+
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        Schema::create('country', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('student_id')->unique();
+            $table->string('continent');
+            $table->string('country_name');
+            $table->string('capital');
+            $table->foreign('student_id')->references('id')->on('students')->onDelete('cascade');
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        Schema::dropIfExists('country');
+    }
+};
+
+- - - - - - - - - - 
+addeditacademic.blade.php
+- - - - - -- - - - -
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>CRUD - Students (Update)</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	</head>
+	<body>
+    <nav class="navbar" style="background-color: #89bbf0;">
+        <div class="container-fluid">
+                <a class="navbar-brand" href="http://127.0.0.1:8000">C.R.U.D</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarText">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                    <a class="nav-link" href="http://127.0.0.1:8000/students">Student</a>
+                    </li>
+                </span>
+            </div>
+        </div>
+    </nav>
+	<div class="row">
+		<div class="mt-4" >
+			<div class="col-lg-12 margin-tb">
+				<div class="pull-left" style="text-align: center">
+				<h2>Add / Edit Academic</h2>
+			</div>
+		</div>
+	</div>
+
+	@if ($errors->any())
+		<div class="alert alert-danger">
+			<ul>
+				@foreach ($errors->all() as $error)
+					<li>{{ $error }}</li>
+				@endforeach
+			</ul>
+		</div>
+	@endif
+    
+	<form action="{{ url('students/'.$students->id.'/updateacademic')}}" method="POST">
+		@csrf
+		@method('put')
+		<div class="ms-auto me-auto mt-3" style="width: 500px">
+        
+			<div class="row">
+				<div class="mt-2">
+					<div class="form-group">
+                        <h4 style="text-align: center; padding-top: 10px">Academic</h4>	
+                    <div class="mt-2">
+                        <div class="form-group">
+                            <strong>Course:</strong>
+                            <input type="text" name="course" value="{{ $students->course ?? "" }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="form-group">
+                            <strong>Year:</strong>
+                            <input type="text" name="year" value="{{$students->year ?? "" }}" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+				<div class="mt-2 text-center">
+					<button type="update" class="btn btn-primary" style="margin-top: 10px; position: absolute; left:40%; right:40%; background-color: green">Update</button>
+					<a class="btn btn-primary" style="margin-top: 50px; position: absolute; left:40%; right:40%; background-color: red" href="{{route('students.index')}}">Cancel</a>
+				</div>
+				</div>
+			</div>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+	</body>
+</html>
+
+
+- - - - - - - - - - 
+addeditcountry.blade.php
+- - - - - -- - - - -
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>CRUD - Students (Update)</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	</head>
+	<body>
+    <nav class="navbar" style="background-color: #89bbf0;">
+        <div class="container-fluid">
+                <a class="navbar-brand" href="http://127.0.0.1:8000">C.R.U.D</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarText">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                    <a class="nav-link" href="http://127.0.0.1:8000/students">Student</a>
+                    </li>
+                </span>
+            </div>
+        </div>
+    </nav>
+	<div class="row">
+		<div class="mt-4" >
+			<div class="col-lg-12 margin-tb">
+				<div class="pull-left" style="text-align: center">
+				<h2>Add / Edit Country</h2>
+			</div>
+		</div>
+	</div>
+
+	@if ($errors->any())
+		<div class="alert alert-danger">
+			<ul>
+				@foreach ($errors->all() as $error)
+					<li>{{ $error }}</li>
+				@endforeach
+			</ul>
+		</div>
+	@endif
+    
+	<form method="post" action="{{url('students/'.$students->id.'/updatecountry')}}">
+        @csrf
+		@method('put')
+		<div class="ms-auto me-auto mt-3" style="width: 500px">
+        
+			<div class="row">
+				<div class="mt-2">
+                    <h4 style="text-align: center; padding-top: 10px">Country</h4>	
+                    <div class="mt-2">
+                        <div class="form-group">
+                            <strong>Continent:</strong>
+                            <input type="text" name="continent" value="{{ $students->continent ?? 'None' }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="form-group">
+                            <strong>Country Name:</strong>
+                            <input type="text" name="country_name" value="{{ $students-> country_name ?? 'None' }}" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="form-group">
+                            <strong>Capital:</strong>
+                            <input type="text" name="capital" value="{{ $students->capital ?? 'None' }}" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="mt-2 text-center">
+                        <button type="update" class="btn btn-primary" style="margin-top: 10px; position: absolute; left:40%; right:40%; background-color: green">Update</button>
+                        <a class="btn btn-primary" style="margin-top: 50px; position: absolute; left:40%; right:40%; background-color: red" href="{{route('students.index')}}">Cancel</a>
+                    </div>
+				</div>
+			</div>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+	</body>
+</html>
+
+- - - - - - - - - - 
+create.blade.php
+- - - - - -- - - - -
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>CRUD - Students (Create)</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+		<style>
+		</style>
+	</head>
+	<body>
+		<nav class="navbar" style="background-color: #89bbf0;">
+			<div class="container-fluid">
+					<a class="navbar-brand" href="http://127.0.0.1:8000">C.R.U.D</a>
+					<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+					</button>
+					<div class="collapse navbar-collapse" id="navbarText">
+					<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+						<li class="nav-item">
+						<a class="nav-link" href="http://127.0.0.1:8000/students">Student</a>
+						</li>
+					</span>
+				</div>
+			</div>
+		</nav>
+		<div class="row">
+			<div class="col-lg-12 margin-bt">
+				<div class="pull-left" style="margin-top:10px">
+					<h2 style="text-align: center">Add New Student</h2>
+				</div>
+			</div>
+		</div>
+
+		@if ($errors->any())
+		<div class="col-10" style="margin-left:100px; margin-top: 5px;">
+			<div class="alert alert-danger">
+				<ul>
+					@foreach ($errors->all() as $error)
+						<li>{{ $error }}</li>
+					@endforeach
+				</ul>
+			</div>
+		</div>
+		@endif
+
+		<form action="{{ route('students.store') }}" method="POST" class="ms-auto me-auto mt-3" style="width: 500px">
+			@csrf
+			<div class="row">
+				<div class="mt-2">
+					<div class="form-group">
+						<h4 style="text-align: center">Basic Information</h4>
+						<strong>Name:</strong>
+						<input type="text" name="name" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Age:</strong>
+						<input type="text" name="age" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Address:</strong>
+						<input type="text" name="address" class="form-control">
+					</div>
+				</div>
+
+				<h4 style="text-align: center; padding-top: 10px">Academic</h4>	
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Course:</strong>
+						<input type="text" name="course" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Year:</strong>
+						<input type="text" name="year" class="form-control">
+					</div>
+				</div>
+
+				<h4 style="text-align: center; padding-top: 10px">Country</h4>	
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Continent:</strong>
+						<input type="text" name="continent" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Country Name:</strong>
+						<input type="text" name="country_name" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Capital:</strong>
+						<input type="text" name="capital" class="form-control">
+					</div>
+				</div>
+
+				<div class="mt-2 text-center">
+					<button type="create" class="btn btn-primary" style="margin-top: 10px; position: absolute; left:40%; right:40%; background-color: green">Create</button>
+					<a class="btn btn-primary" style="margin-top: 50px; position: absolute; left:40%; right:40%; background-color: red" href="{{route('students.index')}}">Cancel</a>
+				</div>
+				</div>
+			</div>
+		</form>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+	</body>
+</html>
+- - - - - - - - - - 
+edit.blade.php
+- - - - - -- - - - -
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>CRUD - Students (Update)</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	</head>
+	<body>
+    <nav class="navbar" style="background-color: #89bbf0;">
+        <div class="container-fluid">
+                <a class="navbar-brand" href="http://127.0.0.1:8000">C.R.U.D</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarText">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                    <a class="nav-link" href="http://127.0.0.1:8000/students">Student</a>
+                    </li>
+                </span>
+            </div>
+        </div>
+    </nav>
+	<div class="row">
+		<div class="mt-4" >
+			<div class="col-lg-12 margin-tb">
+				<div class="pull-left" style="text-align: center">
+				<h2>Add / Edit Student Data</h2>
+			</div>
+		</div>
+	</div>
+
+	@if ($errors->any())
+		<div class="alert alert-danger">
+			<ul>
+				@foreach ($errors->all() as $error)
+					<li>{{ $error }}</li>
+				@endforeach
+			</ul>
+		</div>
+	@endif
+    
+	<form method="post" action="{{route('students.update', ['students' => $students])}}">
+		@csrf
+		@method('put')
+		<div class="ms-auto me-auto mt-3" style="width: 500px">
+        
+			<div class="row">
+				<div class="mt-2">
+					<div class="form-group">
+						<h4 style="text-align: center">Basic Information</h4>
+						<strong>Name:</strong>
+						<input type="text" name="name"  value="{{$students->name ?? 'None'}}" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Age:</strong>
+						<input type="text" name="age" value="{{$students->age ?? 'None'}}" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Address:</strong>
+						<input type="text" name="address" value="{{$students->address ?? 'None'}}" class="form-control">
+					</div>
+				</div>
+
+				<h4 style="text-align: center; padding-top: 10px">Academic</h4>	
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Course:</strong>
+						<input type="text" name="course" value="{{$students->academic->course ?? 'None' }}" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Year:</strong>
+						<input type="text" name="year" value="{{$students->academic->year ?? 'None' }}" class="form-control">
+					</div>
+				</div>
+
+				<h4 style="text-align: center; padding-top: 10px">Country</h4>	
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Continent:</strong>
+						<input type="text" name="continent" value="{{$students->country->continent ?? 'None'}}" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Country Name:</strong>
+						<input type="text" name="country_name" value="{{$students->country->country_name ?? 'None'}}" class="form-control">
+					</div>
+				</div>
+				<div class="mt-2">
+					<div class="form-group">
+						<strong>Capital:</strong>
+						<input type="text" name="capital" value="{{$students->country->capital ?? 'None'}}" class="form-control">
+					</div>
+				</div>
+
+				<div class="mt-2 text-center">
+					<button type="update" class="btn btn-primary" style="margin-top: 10px; position: absolute; left:40%; right:40%; background-color: green">Update</button>
+					<a class="btn btn-primary" style="margin-top: 50px; position: absolute; left:40%; right:40%; background-color: red" href="{{route('students.index')}}">Cancel</a>
+				</div>
+				</div>
+			</div>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+	</body>
+</html>
+
+- - - - - - - - - - 
+index.blade.php
+- - - - - -- - - - -
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>CRUD - Students (Index)</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+			td {
+				text-align: center;
+				vertical-align: middle
+			}
+
+			th {
+				text-align: center;
+				vertical-align: middle
+			}
+
+			.dropbtn {
+                background-color: green;
+                color: white;
+                padding: 10px;
+                font-size: 16px;
+                border: none;
+            }
+
+			.dropbtn1 {
+                background-color: red;
+                color: white;
+                padding: 10px;
+                font-size: 16px;
+                border: none;
+            }
+
+			.dropdown {
+				position: relative;
+				display: inline-block;
+			}
+
+			.dropdown-content {
+                display: none;
+                position: absolute;
+                background-color: #f1f1f1;
+                min-width: 125px;
+                box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                z-index: 1;
+            }
+
+            .dropdown-content a {
+                color: black;
+                padding: 10px 0px;
+                text-decoration: none;
+                display: block;
+            }
+
+			.dropdown-content button {
+                color: black;
+                padding: 10px 0px;
+                text-decoration: none;
+                display: block;
+				background-color: #f1f1f1;
+                min-width: 125px;
+				border: none;
+            }
+
+            .dropdown-content a:hover {background-color: #ddd;}
+
+            .dropdown:hover .dropdown-content {display: block;}
+
+            .dropdown:hover .dropbtn {background-color: #3e8e41;}
+        </style>
+	</head>
+	<body>
+		<nav class="navbar" style="background-color: #89bbf0;">
+			<div class="container-fluid">
+					<a class="navbar-brand" href="http://127.0.0.1:8000">C.R.U.D</a>
+					<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+					<span class="navbar-toggler-icon"></span>
+					</button>
+					<div class="collapse navbar-collapse" id="navbarText">
+					<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+						<li class="nav-item">
+						<a class="nav-link" href="http://127.0.0.1:8000/students">Student</a>
+						</li>
+					</span>
+				</div>
+			</div>
+		</nav>
+        <div class="pull-left">
+			<div class="row">
+				<div class="mt-4">
+					<h2 style="text-align: center">Students CRUD System</h2>
+				</div>
+				<div>
+					<div class="pull-right" style="margin-bottom: 50px; display: block;">
+					<a class="btn btn-success" style="display: block;  width: 20%; position: absolute; left: 40%; right: 40%; background-color: green" href="{{ route('students.create') }}">Create New Student Data</a>
+					</div>
+				</div>
+            </div>
+
+            @if (session('message'))
+            <div>
+                <h5 class="alert alert-success">{{session('message')}}</h5>
+            </div>
+            @endif
+
+		<table class="table table-bordered">
+			<tr>
+				<th colspan="4">Student Information</th>
+                <th colspan="2">Academic</th>
+                <th colspan="3">Country</th>
+				<th colspan="2" rowspan="2">Actions</th>          
+			</tr>
+            <tr>
+				<th>ID</th>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Address</th>
+				<th>Course</th>
+				<th>Year</th>
+				<th>Continent</th>
+				<th>Name</th>
+				<th>Capital</th>     
+			</tr>
+			@foreach($students as $students)
+				<tr>
+					<td>{{$students->id ?? 'None'}}</td>	
+					<td>{{$students->name ?? 'None'}}</td>	
+					<td>{{$students->age ?? 'None'}}</td>
+					<td>{{$students->address ?? 'None'}}</td>
+					<td>{{$students->academic->course ?? 'None'}}</td>
+					<td>{{$students->academic->year ?? 'None'}}</td>
+					<td>{{$students->country->continent ?? 'None'}}</td>
+					<td>{{$students->country->country_name ?? 'None'}}</td>
+					<td>{{$students->country->capital ?? 'None'}}</td>
+					<td>
+					<div class="dropdown" style="float: left">
+						<button class="dropbtn">Update</button>
+							<div class="dropdown-content">
+								<a href="{{ route('students.edit',['students' => $students])}}">All Data</a>
+								<a href="{{ url('students/'.$students->id.'/academic')}}">Academic</a>
+								<a href="{{ url('students/'.$students->id.'/country')}}">Country</a>
+							</div>
+					<td>
+						<div class="dropdown" style="float: left">
+							<button class="dropbtn1">Delete</button>
+							<div class="dropdown-content">
+								<form action="{{ url('students/'.$students->id.'/destroy')}}" method="POST">
+									@csrf	
+									@method('DELETE')
+										<button type="submit" class="btn btn-danger btn sm ">All Data</a>
+								</form>
+								<form action="{{ url('students/'.$students->id.'/deleteacademic') }}" method="POST" >
+									@csrf	
+									@method('DELETE')
+										<button type="submit" class="btn btn-danger btn sm">Academic</a>
+								</form>
+								<form action="{{ url('students/'.$students->id.'/deletecountry')}}" method="POST">
+									@csrf	
+									@method('DELETE')
+										<button type="submit" class="btn btn-danger btn sm">Country</a>
+								</form>							
+							</div>
+						</div>
+					</td>	
+				@endforeach
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+	</body>
+</html>
+- - - - - - - - - - 
+welcome.blade.php
+- - - - - -- - - - -
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>CRUD</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+        
+            .btn {
+                display: block;
+                width: 50%;
+                border: none;
+                background-color: #89CFF0;
+                font-size: 16px;
+                cursor: pointer;
+                text-align: center; 
+                position: absolute;
+                left:25;
+                right:25%;
+                font-family: Montserrat;
+                font-size: 1.25rem;
+            }
+
+            .btn:hover{
+                background-color: #89bbf0;
+                border: 1px solid gray;
+                transition: 0.5s;
+            }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar" style="background-color: #89bbf0;">
+            <div class="container-fluid">
+                    <a class="navbar-brand" href="http://127.0.0.1:8000">C.R.U.D</a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarText">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                        <a class="nav-link" href="http://127.0.0.1:8000/students">Student</a>
+                        </li>
+                    </span>
+                </div>
+            </div>
+        </nav>
+        <div class="container" style="text-align: center;">
+            <a href="http://127.0.0.1:8000"><img src="images/crud logo.png" class="logo" alt="Crud logo" style="margin: 10px auto; display: block; width: 350px"></a>
+            <a href="http://127.0.0.1:8000/students" style="margin-top: 50px" button type="button" class="btn">Student</button></a>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+</html>
+
+- - - - - -  
+web.php
+- - - - - -
+
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StudentController;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+
+Route::get('/students', [StudentController::class, 'index'])->name('students.index');
+
+Route::get('/students/create', [StudentController::class, 'create'])->name('students.create');
+Route::post('/students', [StudentController::class, 'store'])->name('students.store');
+
+Route::get('/students/{students}/edit', [StudentController::class, 'edit'])->name('students.edit');
+Route::put('/students/{students}/update', [StudentController::class, 'update'])->name('students.update');
+Route::delete('/students/{students}/destroy', [StudentController::class, 'destroy'])->name('students.destroy');
+
+Route::get('students/{student_id}/academic', [StudentController::class, 'addEditAcademic'])->name('students.addeditacademic');
+Route::put('students/{student_id}/updateacademic', [StudentController::class, 'storeOrUpdateAcademic'])->name('students.storeorupdateacademic');
+Route::delete('/students/{students}/deleteacademic', [StudentController::class, 'deleteAcademic'])->name('students.deleteacademic');
+
+Route::get('students/{student_id}/country', [StudentController::class, 'addEditCountry'])->name('students.addeditcountry');
+Route::put('students/{student_id}/updatecountry', [StudentController::class, 'storeOrUpdateCountry'])->name('students.storeorupdatecountry');
+Route::delete('/students/{students}/deletecountry', [StudentController::class, 'deleteCountry'])->name('students.deletecountry');
+
+
